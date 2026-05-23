@@ -2,6 +2,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Meal, saveMeal } from '../../utils/storage';
 
 const { GEMINI_API_KEY } = require('../../secret.json');
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
@@ -44,6 +45,34 @@ export default function HomeScreen() {
     }
   };
 
+  const logMeal = async () => {
+	if (!result) return;
+
+	const meal: Meal = {
+		id: Date.now().toString(),
+		timestamp: Date.now(),
+		foods: [
+			{
+				name: result.Food,
+				portion: '',
+				calories: result.Calories,
+				protein: result.Protein,
+				carbs: result.Carbs,
+				fat: result.Fat,
+			}
+		],
+		totals: {
+			calories: result.Calories,
+			protein: result.Protein,
+			carbs: result.Carbs,
+			fat: result.Fat,
+		},
+	};
+
+	await saveMeal(meal);
+	alert('Meal logged!');
+};
+
   return (
   <View style={styles.container}>
     <Text style={styles.title}>Food For Thought</Text>
@@ -51,7 +80,7 @@ export default function HomeScreen() {
     <TouchableOpacity style={styles.button} onPress={takePhoto}>
       <Text style={styles.buttonText}>Take Photo</Text>
     </TouchableOpacity>
-   {result && (
+  {result && (
   <View style={styles.card}>
     <Text style={styles.foodName}>{result.Food}</Text>
     <View style={styles.macroRow}>
@@ -72,6 +101,9 @@ export default function HomeScreen() {
         <Text style={styles.macroLabel}>Fat</Text>
       </View>
     </View>
+    <TouchableOpacity style={styles.logButton} onPress={logMeal}>
+	    <Text style={styles.buttonText}>Log this meal</Text>
+    </TouchableOpacity>
   </View>
 )}
   </View>
@@ -101,6 +133,15 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 40,
     borderRadius: 50,
+  },
+  logButton: {
+    backgroundColor: '#3b82f6',
+    paddingVertical: 14,
+    paddingHorizontal: 40,
+    borderRadius: 50,
+    marginTop: 16,
+    width: '100%',
+    alignItems: 'center',
   },
   buttonText: {
     color: '#000000',
