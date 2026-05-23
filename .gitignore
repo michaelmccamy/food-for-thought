@@ -44,3 +44,4 @@ app-example
 
 # secret files
 secret.json
+firebase.ts
