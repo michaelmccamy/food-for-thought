@@ -2,14 +2,14 @@ import { useRouter } from 'expo-router';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
 import { useState } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+	KeyboardAvoidingView,
+	Platform,
+	SafeAreaView,
+	StyleSheet,
+	Text,
+	TextInput,
+	TouchableOpacity,
+	View,
 } from 'react-native';
 import { auth } from '../utils/firebase';
 
@@ -46,7 +46,7 @@ export default function LoginScreen() {
 						<Text style={s.iconEmoji}>🥗</Text>
 					</View>
 
-					<Text style={s.title}>Food For{'\n'}Thought</Text>
+					<Text style={s.title}>Food For Thought</Text>
 					<Text style={s.subtitle}>
 						{isSignUp ? 'Create an account to get started' : 'Log in to track your meals'}
 					</Text>
@@ -78,12 +78,13 @@ export default function LoginScreen() {
 							style={s.eyeBtn}
 							onPress={() => setShowPassword(v => !v)}
 						>
-							<Text style={s.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+							<Text style={s.eyeText}>{showPassword ? 'Hide' : 'Show'}</Text>
 						</TouchableOpacity>
 					</View>
 
 					{!isSignUp && (
-						<TouchableOpacity style={s.forgotWrap}>
+						<TouchableOpacity style={s.forgotWrap}
+							onPress={() => alert('Password reset not implemented yet')}>
 							<Text style={s.forgot}>Forgot password?</Text>
 						</TouchableOpacity>
 					)}
@@ -105,7 +106,7 @@ export default function LoginScreen() {
 
 					<TouchableOpacity
 						style={s.btnGhost}
-						onPress={() => router.replace('/(tabs)')}
+						onPress={() => alert('Google Sign-In not implemented yet')}
 					>
 						<Text style={s.btnGhostText}>🇬  Continue with Google</Text>
 					</TouchableOpacity>
