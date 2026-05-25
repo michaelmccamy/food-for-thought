@@ -111,16 +111,11 @@ export const saveProfile = async (profile: object): Promise<void> => {
 
 export const getProfile = async (): Promise<any | null> => {
 	const user = auth.currentUser;
-	console.log('current uid:', user?.uid);
 	if (!user) return null;
-	const ref = doc(db, 'users', user.uid, 'profile', 'info');
-	console.log('ref:', ref.path);
 	const snapshot = await getDoc(doc(db, 'users', user.uid, 'profile', 'info'));
-	console.log('snapshot:', snapshot.exists());
 	if (snapshot.exists()) {
 		return snapshot.data();
 	}
-
 	return null;
 };
 
