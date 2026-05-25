@@ -1,91 +1,116 @@
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { getTodaysMeals, Meal } from '../../utils/storage';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { getMealsByDay, Meal } from '../../utils/storage';
+
+type DayGroup = {
+	date: string;
+	meals: Meal[];
+	totals: {
+		calories: number;
+		protein: number;
+		carbs: number;
+		fat: number;
+	};
+};
 
 export default function HistoryScreen() {
-	const [meals, setMeals] = useState<Meal[]>([]);
-  const [totals, setTotals] = useState({ calories: 0, protein: 0, carbs: 0, fat: 0 });
+	const [days, setDays] = useState<DayGroup[]>([]);
+	const [expanded, setExpanded] = useState<string | null>('today');
+
 	useFocusEffect(
-    useCallback(() => {
-      loadMeals();
-    }, [])
-  );
+		useCallback(() => {
+			loadHistory();
+		}, [])
+	);
 
-	const loadMeals = async () => {
-    const todaysMeals = await getTodaysMeals();
-    setMeals(todaysMeals);
+	const loadHistory = async () => {
+	const grouped = await getMealsByDay();
+	const last7 = grouped.slice(0, 7);
+	setDays(last7);
 
-    let calories = 0;
-    let protein = 0;
-    let carbs = 0;
-    let fat = 0;
+	if (last7.length > 0) {
+		setExpanded(last7[0].date);
+	}
+};
 
-    for (const meal of todaysMeals) {
-      calories += meal.totals.calories;
-      protein += meal.totals.protein;
-      carbs += meal.totals.carbs;
-      fat += meal.totals.fat;
-    }
-    setTotals({ calories, protein, carbs, fat });
-  };
+	const toggleDay = (date: string) => {
+		if (expanded === date) {
+			setExpanded(null);
+		} else {
+			setExpanded(date);
+		}
+	};
+
+	const formatDate = (dateKey: string) => {
+		const [year, month, day] = dateKey.split('-').map(Number);
+		const date = new Date(year, month, day);
+		const today = new Date();
+		const yesterday = new Date();
+		yesterday.setDate(today.getDate() - 1);
+
+		if (
+			date.getDate() === today.getDate() &&
+			date.getMonth() === today.getMonth()
+		) {
+			return 'Today';
+		}
+
+		if (
+			date.getDate() === yesterday.getDate() &&
+			date.getMonth() === yesterday.getMonth()
+		) {
+			return 'Yesterday';
+		}
+
+		return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+	};
 
 	return (
-	<ScrollView style={styles.container}>
-		<Text style={styles.title}>Today's Meals</Text>
-    <View style={styles.totalsCard}>
-			<Text style={styles.totalsTitle}>Daily Total</Text>
-			<View style={styles.macroRow}>
-				<View style={styles.macroBox}>
-					<Text style={styles.macroValue}>{totals.calories}</Text>
-					<Text style={styles.macroLabel}>Calories</Text>
-				</View>
-				<View style={styles.macroBox}>
-					<Text style={styles.macroValue}>{totals.protein}g</Text>
-					<Text style={styles.macroLabel}>Protein</Text>
-				</View>
-				<View style={styles.macroBox}>
-					<Text style={styles.macroValue}>{totals.carbs}g</Text>
-					<Text style={styles.macroLabel}>Carbs</Text>
-				</View>
-				<View style={styles.macroBox}>
-					<Text style={styles.macroValue}>{totals.fat}g</Text>
-					<Text style={styles.macroLabel}>Fat</Text>
-				</View>
-			</View>
-		</View>
-		{meals.length === 0 && (
-			<Text style={styles.empty}>No meals logged yet. Go scan something!</Text>
-		)}
+		<ScrollView style={styles.container}>
+			<Text style={styles.title}>History</Text>
 
-		{meals.map((meal) => (
-			<View key={meal.id} style={styles.card}>
-				<Text style={styles.mealName}>{meal.foods[0].name}</Text>
-				<Text style={styles.mealTime}>
-					{new Date(meal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-				</Text>
-				<View style={styles.macroRow}>
-					<View style={styles.macroBox}>
-						<Text style={styles.macroValue}>{meal.totals.calories}</Text>
-						<Text style={styles.macroLabel}>Calories</Text>
-					</View>
-					<View style={styles.macroBox}>
-						<Text style={styles.macroValue}>{meal.totals.protein}g</Text>
-						<Text style={styles.macroLabel}>Protein</Text>
-					</View>
-					<View style={styles.macroBox}>
-						<Text style={styles.macroValue}>{meal.totals.carbs}g</Text>
-						<Text style={styles.macroLabel}>Carbs</Text>
-					</View>
-					<View style={styles.macroBox}>
-						<Text style={styles.macroValue}>{meal.totals.fat}g</Text>
-						<Text style={styles.macroLabel}>Fat</Text>
-					</View>
+			{days.length === 0 && (
+				<Text style={styles.empty}>No meals logged yet. Go scan something!</Text>
+			)}
+
+			{days.map((day) => (
+				<View key={day.date} style={[
+          styles.dayCard,
+          day.date === days[0]?.date && styles.todayCard
+        ]}>
+					<TouchableOpacity onPress={() => toggleDay(day.date)} style={styles.dayHeader}>
+						<View>
+							<Text style={styles.dayDate}>{formatDate(day.date)}</Text>
+							<Text style={styles.dayCalories}>{day.totals.calories} kcal</Text>
+						</View>
+						<View style={styles.dayMacros}>
+							<Text style={styles.macroText}>P: {day.totals.protein}g</Text>
+							<Text style={styles.macroText}>C: {day.totals.carbs}g</Text>
+							<Text style={styles.macroText}>F: {day.totals.fat}g</Text>
+							<Text style={styles.chevron}>{expanded === day.date ? '▲' : '▼'}</Text>
+						</View>
+					</TouchableOpacity>
+
+					{expanded === day.date && (
+						<View style={styles.mealsContainer}>
+							{day.meals.map((meal) => (
+								<View key={meal.id} style={styles.mealRow}>
+									<View>
+										<Text style={styles.mealName}>{meal.foods[0].name}</Text>
+										<Text style={styles.mealTime}>
+											{new Date(meal.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+										</Text>
+									</View>
+									<Text style={styles.mealCalories}>{meal.totals.calories} kcal</Text>
+								</View>
+							))}
+						</View>
+					)}
 				</View>
-			</View>
-		))}
-	</ScrollView>
-);
+			))}
+		</ScrollView>
+	);
 }
 
 const styles = StyleSheet.create({
@@ -101,67 +126,80 @@ const styles = StyleSheet.create({
 		color: '#ffffff',
 		marginBottom: 24,
 	},
-  empty: {
-    color: '#888888',
-    fontSize: 16,
-    textAlign: 'center',
-    marginTop: 40,
+	empty: {
+		color: '#888888',
+		fontSize: 16,
+		textAlign: 'center',
+		marginTop: 40,
+	},
+	dayCard: {
+		backgroundColor: '#1a1a1a',
+		borderRadius: 16,
+		marginBottom: 12,
+		borderWidth: 1,
+		borderColor: '#333333',
+		overflow: 'hidden',
+	},
+  todayCard: {
+    borderColor: '#22c55e',
+    borderWidth: 1.5,
   },
-  card: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#333333',
-  },
-  mealName: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  mealTime: {
-    color: '#888888',
-    fontSize: 13,
-    marginBottom: 12,
-  },
-  macroRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  macroBox: {
-    alignItems: 'center',
-    backgroundColor: '#222222',
-    borderRadius: 12,
-    padding: 10,
-    width: '23%',
-  },
-  macroValue: {
-    color: '#22c55e',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  macroLabel: {
-    color: '#888888',
-    fontSize: 11,
-    marginTop: 4,
-  },
-  totalsCard: {
-	backgroundColor: '#1a1a1a',
-	borderRadius: 16,
-	padding: 20,
-	marginBottom: 24,
-	borderWidth: 1,
-	borderColor: '#22c55e',
-  },
-  totalsTitle: {
-    color: '#22c55e',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-}
-);
+	dayHeader: {
+		padding: 16,
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+	},
+	dayDate: {
+		color: '#ffffff',
+		fontSize: 16,
+		fontWeight: 'bold',
+		marginBottom: 2,
+	},
+	dayCalories: {
+		color: '#22c55e',
+		fontSize: 13,
+	},
+	dayMacros: {
+		flexDirection: 'row',
+		gap: 8,
+		alignItems: 'center',
+	},
+	macroText: {
+		color: '#888888',
+		fontSize: 12,
+	},
+	chevron: {
+		color: '#888888',
+		fontSize: 10,
+		marginLeft: 4,
+	},
+	mealsContainer: {
+		borderTopWidth: 1,
+		borderTopColor: '#333333',
+		padding: 12,
+	},
+	mealRow: {
+		flexDirection: 'row',
+		justifyContent: 'space-between',
+		alignItems: 'center',
+		paddingVertical: 10,
+		borderBottomWidth: 1,
+		borderBottomColor: '#222222',
+	},
+	mealName: {
+		color: '#ffffff',
+		fontSize: 14,
+		fontWeight: '500',
+	},
+	mealTime: {
+		color: '#888888',
+		fontSize: 12,
+		marginTop: 2,
+	},
+	mealCalories: {
+		color: '#22c55e',
+		fontSize: 14,
+		fontWeight: 'bold',
+	},
+});

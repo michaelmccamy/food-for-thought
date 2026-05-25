@@ -105,17 +105,61 @@ export const getGoals = async (): Promise<UserGoals | null> => {
 export const saveProfile = async (profile: object): Promise<void> => {
 	const user = auth.currentUser;
 	if (!user) return;
-	
+
 	await setDoc(doc(db, 'users', user.uid, 'profile', 'info'), profile);
 };
 
 export const getProfile = async (): Promise<any | null> => {
 	const user = auth.currentUser;
+	console.log('current uid:', user?.uid);
 	if (!user) return null;
+	const ref = doc(db, 'users', user.uid, 'profile', 'info');
+	console.log('ref:', ref.path);
 	const snapshot = await getDoc(doc(db, 'users', user.uid, 'profile', 'info'));
+	console.log('snapshot:', snapshot.exists());
 	if (snapshot.exists()) {
 		return snapshot.data();
 	}
 
 	return null;
+};
+
+export const getMealsByDay = async (): Promise<{ date: string; meals: Meal[]; totals: { calories: number; protein: number; carbs: number; fat: number } }[]> => {
+	const allMeals = await getMeals();
+	const grouped: { [key: string]: Meal[] } = {};
+
+	for (const meal of allMeals) {
+		const date = new Date(meal.timestamp);
+		const key = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+
+		if (!grouped[key]) {
+			grouped[key] = [];
+		}
+
+		grouped[key].push(meal);
+	}
+
+	const result = [];
+
+	for (const key in grouped) {
+		const meals = grouped[key];
+		const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+
+		for (const meal of meals) {
+			totals.calories += meal.totals.calories;
+			totals.protein += meal.totals.protein;
+			totals.carbs += meal.totals.carbs;
+			totals.fat += meal.totals.fat;
+		}
+
+		result.push({
+			date: key,
+			meals,
+			totals,
+		});
+	}
+
+	result.sort((a, b) => b.date.localeCompare(a.date));
+
+	return result;
 };
