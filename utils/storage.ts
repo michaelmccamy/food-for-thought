@@ -1,4 +1,4 @@
-import { addDoc, collection, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, setDoc } from 'firebase/firestore';
 import { auth, db } from './firebase';
 
 export type Meal = {
@@ -18,6 +18,13 @@ export type Meal = {
 		carbs: number;
 		fat: number;
 	};
+};
+
+export type UserGoals = {
+	calories: number;
+	protein: number;
+	carbs: number;
+	fat: number;
 };
 
 export const saveMeal = async (meal: Omit<Meal, 'id'>): Promise<void> => {
@@ -75,4 +82,40 @@ export const clearAllMeals = async (): Promise<void> => {
 	for (const document of snapshot.docs) {
 		await deleteDoc(doc(db, 'users', user.uid, 'meals', document.id));
 	}
+};
+
+export const saveGoals = async (goals: UserGoals): Promise<void> => {
+	const user = auth.currentUser;
+	if (!user) return;
+
+	await setDoc(doc(db, 'users', user.uid, 'profile', 'goals'), goals);
+};
+
+export const getGoals = async (): Promise<UserGoals | null> => {
+	const user = auth.currentUser;
+	if (!user) return null;
+
+	const snapshot = await getDoc(doc(db, 'users', user.uid, 'profile', 'goals'));
+	if (snapshot.exists()) {
+		return snapshot.data() as UserGoals;
+	}
+	return null;
+};
+
+export const saveProfile = async (profile: object): Promise<void> => {
+	const user = auth.currentUser;
+	if (!user) return;
+	
+	await setDoc(doc(db, 'users', user.uid, 'profile', 'info'), profile);
+};
+
+export const getProfile = async (): Promise<any | null> => {
+	const user = auth.currentUser;
+	if (!user) return null;
+	const snapshot = await getDoc(doc(db, 'users', user.uid, 'profile', 'info'));
+	if (snapshot.exists()) {
+		return snapshot.data();
+	}
+
+	return null;
 };
